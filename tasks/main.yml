@@ -1,0 +1,63 @@
+---
+
+- name: Add repository debmon key
+  apt_key: url=http://debmon.org/debmon/repo.key state=present
+  when: ansible_distribution == 'Debian'
+
+- name: Add repository debmon
+  apt_repository: repo='deb http://debmon.org/debmon debmon-jessie main' state=present filename='debmon'
+  when: ansible_distribution == 'Debian'
+
+- name: Add repository Ubuntu ppa icinga
+  apt_repository: repo='ppa:formorer/icinga'
+  when: ansible_distribution == 'Ubuntu'
+
+
+- debconf: name=mysql question='mysql-server/root_password' value={{ mysql_root_pass }}  vtype='password'
+- debconf: name=mysql question='mysql-server/root_password_again' value={{ mysql_root_pass }} vtype='password'
+
+- debconf: name=icinga2-ido-mysql question='icinga2-ido-mysql/dbconfig-install' value='true' vtype='boolean'
+- debconf: name=icinga2-ido-mysql question='icinga2-ido-mysql/mysql/admin-pass' value={{ mysql_root_pass }} vtype='password'
+- debconf: name=icinga2-ido-mysql question='icinga2-ido-mysql/mysql/app-pass' value='' vtype='password'
+- debconf: name=icinga2-ido-mysql question='icinga2-ido-mysql/enable' value='true' vtype='boolean'
+
+- name: Install icinga2  packages
+  apt:
+    update_cache: yes
+    name: "{{ item }}"
+    install_recommends: no
+  with_items:
+      - icinga2
+      - nagios-plugins
+      - nagios-plugins-contrib
+      - nagios-nrpe-plugin
+      - icinga2-ido-mysql
+      - mysql-server
+      - python-pip
+      - zip
+      - unzip
+      - curl
+      - mailutils
+      - vim-icinga2
+      - vim-addon-manager
+      - libmysqlclient-dev
+  register: install
+
+
+- name: Install Python modules
+  pip: name={{ item }}
+  with_items:
+      - nagiosplugin
+      - pymssql
+
+
+
+- name: Enable Icinga2 Ido Mysql Feature
+  command: "{{ item }}"
+  with_items:
+      - "icinga2 feature enable ido-mysql"
+      - "icinga2 feature enable perfdata"
+      - "icinga2 feature enable command"
+  when: install.changed
+  notify:
+    - restart icinga2
