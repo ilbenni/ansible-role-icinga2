@@ -41,6 +41,10 @@
       - vim-icinga2
       - vim-addon-manager
       - libmysqlclient-dev
+      - python-setuptools
+      - python-dev 
+      - build-essential
+      
   register: install
 
 
@@ -49,6 +53,7 @@
   with_items:
       - nagiosplugin
       - pymssql
+      - MySQL-python
 
 
 
